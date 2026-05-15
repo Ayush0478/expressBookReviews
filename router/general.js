@@ -10,6 +10,7 @@ const public_users = express.Router();
 public_users.get('/', async function (req, res) {
 
   try {
+
     const response = await axios.get('http://localhost:5000/books');
 
     return res.status(200).json(response.data);
@@ -19,12 +20,15 @@ public_users.get('/', async function (req, res) {
     return res.status(200).json(books);
 
   }
+
 });
 
 
 // Internal books route
 public_users.get('/books', function (req, res) {
+
   return res.status(200).json(books);
+
 });
 
 
@@ -37,13 +41,26 @@ public_users.get('/isbn/:isbn', async function (req, res) {
 
     const response = await axios.get('http://localhost:5000/books');
 
-    return res.status(200).json(response.data[isbn]);
+    const allBooks = response.data;
+
+    if (!allBooks[isbn]) {
+
+      return res.status(404).json({
+        message: "Book not found"
+      });
+
+    }
+
+    return res.status(200).json(allBooks[isbn]);
 
   } catch (err) {
 
-    return res.status(200).json(books[isbn]);
+    return res.status(500).json({
+      message: "Error searching ISBN"
+    });
 
   }
+
 });
 
 
@@ -59,19 +76,36 @@ public_users.get('/author/:author', async function (req, res) {
     const allBooks = response.data;
 
     const filteredBooks = Object.keys(allBooks)
-      .filter(key => allBooks[key].author.toLowerCase().includes(author.toLowerCase()))
+      .filter(key =>
+        allBooks[key].author.toLowerCase().includes(author.toLowerCase())
+      )
       .reduce((obj, key) => {
+
         obj[key] = allBooks[key];
+
         return obj;
+
       }, {});
+
+    // Error handling if no books found
+    if (Object.keys(filteredBooks).length === 0) {
+
+      return res.status(404).json({
+        message: "No books found for the specified author"
+      });
+
+    }
 
     return res.status(200).json(filteredBooks);
 
   } catch (err) {
 
-    return res.status(500).json({ message: "Error searching author" });
+    return res.status(500).json({
+      message: "Error searching author"
+    });
 
   }
+
 });
 
 
@@ -87,19 +121,36 @@ public_users.get('/title/:title', async function (req, res) {
     const allBooks = response.data;
 
     const filteredBooks = Object.keys(allBooks)
-      .filter(key => allBooks[key].title.toLowerCase().includes(title.toLowerCase()))
+      .filter(key =>
+        allBooks[key].title.toLowerCase().includes(title.toLowerCase())
+      )
       .reduce((obj, key) => {
+
         obj[key] = allBooks[key];
+
         return obj;
+
       }, {});
+
+    // Error handling if no books found
+    if (Object.keys(filteredBooks).length === 0) {
+
+      return res.status(404).json({
+        message: "No books found for the specified title"
+      });
+
+    }
 
     return res.status(200).json(filteredBooks);
 
   } catch (err) {
 
-    return res.status(500).json({ message: "Error searching title" });
+    return res.status(500).json({
+      message: "Error searching title"
+    });
 
   }
+
 });
 
 
@@ -108,10 +159,19 @@ public_users.get('/review/:isbn', function (req, res) {
 
   const isbn = req.params.isbn;
 
+  if (!books[isbn]) {
+
+    return res.status(404).json({
+      message: "Book not found"
+    });
+
+  }
+
   return res.status(200).json({
     reviews: books[isbn].reviews
   });
 
 });
+
 
 module.exports.general = public_users;
